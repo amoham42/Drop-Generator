@@ -18,11 +18,11 @@ public:
     // Drop generator parameters
     int delayTime        = 15;         // Camera delay
     int pulsewidth       = 1000;       // Piezo pulse width
-    int dropletDelay     = 500;        // Time between droplets
+    int dropDelay        = 500;        // Time between droplets
     int dropNum          = 100;        // Number of droplets
-    int counterr         = dropNum;    // Counts droplet numbers
+    int counter          = dropNum;    // Counts droplet numbers
     bool camera          = false;      // Camera on/off
-    bool staterr         = false;      // Droplet generator on/off
+    bool drop            = false;      // Droplet generator on/off
 
     // Motor pin definitions
     const int resDIAG    = 10;         // Reservoir motor diagnostic pin
@@ -33,13 +33,15 @@ public:
     const int genSTEP    = 2;          // Generator motor step pin
 
     // Motor variables
-    int reservMotPos     = 0;          // Reservoir motor position
+    int tiltDegree       = 0;
+    int resMotPos        = 0;          // Reservoir motor position
     int genMotPos        = 0;          // Generator motor position
     int speed            = 1000;       // Motor speed
     int accel            = 500;        // Motor acceleration
-    int travelLength     = 1;          // Motor travel length
-    int roundSize        = 640;        // Motor round size
+    int travelLength     = 1;          // Motor travel length (mm)
+    int roundSize        = 640;        // Motor round size (steps / mm)
     int DIAG_THRESHOLD   = 50;         // Auto home over-current threshold
+    bool calibrate       = false;
 
     // Utils
     bool changed = false;              // Server data update check

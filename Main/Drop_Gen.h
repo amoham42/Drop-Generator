@@ -1,7 +1,7 @@
 #ifndef Drop_Gen_H
 #define Drop_Gen_H
 
-class dclass{
+class Generator{
 
   public:
     // Functions that are used by other controllers
