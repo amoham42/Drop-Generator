@@ -7,13 +7,11 @@ class Motor{
 
   // Functions that are used by other controllers
     void motorSetup();
-    void calibration();
+    void calibrate();
     void runMotor();
     void move(int, int);
 
   private:
-    void IRAM_ATTR resStalled();
-    void IRAM_ATTR genStalled();
     void calculateDist(int&, AccelStepper&, int);
 };
 
