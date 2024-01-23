@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Drop-Gen Controller</title>
+    <link rel="icon" href="./hlogo.png" type="image/png">
+    <link rel="stylesheet" href="./config.css" type="text/css">
+  </head>
+  <body>
+    <span3>
+      <span>
+        <div class="dr-container">
+          <span style="padding: 0px; box-shadow: None; width: 210px">
+            <div class="dr-container">
+              <label>Reservoir</label>
+              <label>Main</label>
+              <label>Generator</label>
+            </div>
+            <div class="dr-container">
+              <button onclick='sendBtnData("/resUP")'>&#11014;</button>
+              <button onclick='sendBtnData("/mainUP")'>&#11014;</button>
+              <button onclick='sendBtnData("/genUP")'>&#11014;</button>
+            </div>
+            <div class="dr-container">
+              <div id='resPos' class="input-container" style=' padding: 5px;'>-</div>
+              <div id='mainPos' class="input-container" style='width: 45px; padding: 5px;'>-</div>
+              <div id='genPos' class="input-container" style='width: 45px; padding: 5px;'>-</div>
+            </div>
+            <div class="dr-container">
+              <button onclick='sendBtnData("/resDOWN")'>&#11015;</button>
+              <button onclick='sendBtnData("/mainDOWN")'>&#11015;</button>
+              <button onclick='sendBtnData("/genDOWN")'>&#11015;</button>
+            </div>
+            <div class="dr-container">
+              <div class="input-container" style="box-shadow: None;">
+                <input class="input-field" type="number" id='textbox7' style="margin-left: 10px" value=''>
+              </div>
+              <div class="input-container" style="box-shadow: None;">
+                <input class="input-field" type="number" id='textbox8' style="margin-right: 30px" value=''>
+              </div>
+            </div>
+          </span>
+          <span style="padding: 0px; box-shadow: None;">
+              <button id='go' onclick='onMove(true)'>GO!</button>
+              <button id='stop' onclick='onMove(false)'>STOP!</button>
+          </span>
+        </div>
+        <button1 onclick='sendBtnData("/calib")'>Calibrate</button1>
+        <div style='margin-top: 5px' class="dr-container">
+          <label>Drop Gen:</label>
+          <div class="wrapper"><div class="water"><div class="drop"></div></div></div>
+          <button id='toggle-gen' onclick='sendBtnData("/dropgen")'>Off</button>
+        </div>
+        <div class="dr-container">
+          <label>Camera:</label>
+          <div class="container">
+            <input type="checkbox" id="camera" disabled>
+            <label for="camera" class="cam"><img src="./camera.png">
+              <div class="line"></div>
+            </label>
+          </div>
+          <button id='toggle-cam' onclick='sendBtnData("/camera")'>Off</button>
+        </div>
+      </span>
+      <span style=' width: 300px; margin-top: 5px; padding-top: 0px'>
+        <div style='height: 150px; flex-direction: column;' class="dr-container">
+          <div class="dr-container">
+            <div style="margin-right: 10px;" class="rectangle"></div>
+            <label>Pulse Width</label>
+          </div>
+          <canvas id="graph"></canvas>
+        </div>
+      </span>
+    </span3>
+    <span>
+      <span2>
+        <div class="dr-container">
+          <label for='textbox1'>Pulse Width (&#xB5;s):</label>
+          <input type='number' id='textbox1' value=''>
+        </div>
+        <div><span1 id='plsw'>-</span1></div>
+      </span2>
+      <span2>
+        <div class="dr-container">
+          <label for='textbox2'>Camera Delay (ms):</label>
+          <input type='number' id='textbox2' value=''>
+        </div>
+        <div><span1 id='cmdel'>-</span1></div>
+      </span2>
+      <span2>
+        <div class="dr-container">
+          <label for='textbox3'>Droplet Delay (ms):</label>
+          <input type='number' id='textbox3' value=''>
+        </div>
+        <div><span1 id='dpdel'>-</span1></div>
+      </span2>
+      <span2>
+        <div class="dr-container">
+          <label for='textbox4'>Droplet Number:</label>
+          <input type='number' id='textbox4' value=''>
+        </div>
+        <div><span1 id='dpnum'>-</span1></div>
+      </span2>
+      <span2>
+        <div class="dr-container">
+          <label for='textbox5'>Travel Length (mm):</label>
+          <input type='number' id='textbox5' value=''>
+        </div>
+        <div><span1 id='trvl'>-</span1></div>
+      </span2>
+      <span2>
+        <div class="dr-container">
+          <label for='textbox6'>Head Tilt (Degrees):</label>
+          <input type='number' id='textbox6' value=''>
+        </div>
+        <div><span1 id='tilt'>-</span1></div>
+      </span2>
+      <button1 onclick='send_data()'>Submit</button1>
+    </span>
+    <script src="./database.js"></script>
+  </body>
+</html>

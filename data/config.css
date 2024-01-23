@@ -41,25 +41,35 @@ input[type=number] {
     padding: 5px;
     border-radius: 5px;
     margin-left: 20px;
+    appearance: none;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .input-container {
     display: flex;
-    padding: 5px;
-    border-radius: 10px;
+    border-radius: 5px;
     flex-direction: column;
     justify-content: center;
     background-color: #F8F8F8;
     box-shadow: 0px 0px 5px #AAAAAA;
+    align-items: center;
+    margin-right: 4px;
+    margin-left: 4px;
+    width: 45px;
 }
 .input-field {
-    padding: 5px;
-    border: none;
+    background-color: #ffffff;
     border-radius: 5px;
-    width: 42px;
+    text-align: center;
+    width: 45px;
 }
 
-button, button1, #toggle-cam, #toggle-gen {
+button, button1, #toggle-cam, #toggle-gen, #go, #stop {
     display: flex;
     border: none;
     color: white;
@@ -72,11 +82,18 @@ button, button1, #toggle-cam, #toggle-gen {
     font-family: 'Arial Narrow'; font-weight: bold;
 }
 
+#go, #stop{
+    margin-top: 10px;
+    padding: 35px 25px;
+
+}
 #toggle-cam, #toggle-gen {
     padding: 15px 35px;
     background-color: #FF0000;
 }
 button1 {background-color: #4CAF50;}
+#go {background-color: #4CAF50;}
+#stop {background-color: #ADAEB3; cursor: default;}
 button:active {background-color: #1363A5;}
 button1:active {background-color: #3A8F3A;}
 #toggle-cam.on, #toggle-gen.on {background-color: #4CAF50;}
@@ -92,7 +109,6 @@ button1:active {background-color: #3A8F3A;}
     justify-content: space-between;
     align-items: center;
 }
-
 /*       Widget        */
 /*    Camera widget    */
 

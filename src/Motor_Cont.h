@@ -9,7 +9,9 @@ class Motor{
     void motorSetup();
     void calibrate();
     void runMotor();
+    void stop();
     void move(int, int);
+    void moveToAbsolute();
 
   private:
     void calculateDist(int&, AccelStepper&, int);

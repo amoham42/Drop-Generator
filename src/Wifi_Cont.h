@@ -13,7 +13,6 @@ class WifiClass{
     void wfRun(Motor&);
 
   private:
-
     void setupServer(Motor&);
     void handleFile(char*, char*);
 };
