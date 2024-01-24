@@ -7,6 +7,7 @@ class Generator{
     // Functions that are used by other controllers
     void dgSetup();
     void dgStart();
+    void shake();
 
   private:
     void camera();

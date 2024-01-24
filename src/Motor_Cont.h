@@ -14,7 +14,7 @@ class Motor{
     void moveToAbsolute();
 
   private:
-    void calculateDist(int&, AccelStepper&, int);
+    void calculateDist(double&, AccelStepper&, int);
 };
 
 #endif

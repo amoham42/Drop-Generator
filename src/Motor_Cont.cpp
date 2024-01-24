@@ -10,7 +10,7 @@ volatile bool stopRes = false;
 volatile bool stopGen = false;
 
 void IRAM_ATTR resStalled(){
-  if(digitalRead(param.RES_DIAG) > param.DIAG_THRESHOLD){
+  if(digitalRead(param.RES_DIAG) == HIGH){
     resStep.setAcceleration(200000);
     resStep.moveTo(param.resMotPos);
     resStep.setAcceleration(param.ACCEL);
@@ -19,7 +19,7 @@ void IRAM_ATTR resStalled(){
 }
 
 void IRAM_ATTR genStalled(){
-  if(digitalRead(param.GEN_DIAG) > param.DIAG_THRESHOLD){
+  if(digitalRead(param.GEN_DIAG) == HIGH){
     genStep.setAcceleration(200000);
     genStep.moveTo(param.genMotPos);
     genStep.setAcceleration(param.ACCEL);
@@ -57,8 +57,8 @@ void Motor::motorSetup(){
 // This function runs the motors
 void Motor::runMotor(){
   if(param.calibrate) calibrate();
-  resStep.runToPosition();
-  genStep.runToPosition();
+  resStep.run();
+  genStep.run();
 }
 
 void Motor::move(int dir, int motor){
@@ -82,7 +82,7 @@ void Motor::move(int dir, int motor){
     }
 }
 
-void Motor::calculateDist(int& motorPos, AccelStepper& stepper, int dir) {
+void Motor::calculateDist(double& motorPos, AccelStepper& stepper, int dir) {
   if(!stepper.isRunning()){
     motorPos += param.travelLength * dir;
     stepper.moveTo(motorPos * param.LEAD_SIZE);

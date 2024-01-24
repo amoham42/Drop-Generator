@@ -8,11 +8,11 @@ static const BaseType_t app_cpu = 0;
 static const BaseType_t pro_cpu = 1;
 
 // Initializing each controller
+Param param;               // Parameters
+Preferences pref;          // To load previous parameters
 Generator DropGen;         // Drop generator Controller
 Motor MotorCont = Motor(); // Motor Controller
 WifiClass  WiFiCont;       // Wifi & server Controller 
-Param param;               // Parameters
-Preferences pref;          // To load previous parameters
 
 // Functions run by each core
 void codeTask1(void* parameter){while(1){DropGen.dgStart();}}
@@ -26,7 +26,7 @@ void setup(){
   param.loadParameters(pref);
   DropGen.dgSetup();
   MotorCont.motorSetup();
-  WiFiCont.wfSetup(MotorCont);
+  WiFiCont.wfSetup(MotorCont, DropGen);
   xTaskCreatePinnedToCore(codeTask1, "DropGen", 2048, NULL, 1, NULL, pro_cpu);
   xTaskCreatePinnedToCore(codeTask2, "Controls", 10240, NULL, 1, NULL, app_cpu);
 }

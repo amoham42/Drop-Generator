@@ -9,11 +9,11 @@ class WifiClass{
   
   // Functions that are used by other controllers
     void update(bool);
-    void wfSetup(Motor&);
+    void wfSetup(Motor&, Generator& generator);
     void wfRun(Motor&);
 
   private:
-    void setupServer(Motor&);
+    void setupServer(Motor&, Generator& generator);
     void handleFile(char*, char*);
 };
 

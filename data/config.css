@@ -58,44 +58,85 @@ input[type="number"]::-webkit-outer-spin-button {
     background-color: #F8F8F8;
     box-shadow: 0px 0px 5px #AAAAAA;
     align-items: center;
-    margin-right: 4px;
-    margin-left: 4px;
+    margin-right: 1px;
+    margin-left: 1px;
     width: 45px;
 }
 .input-field {
-    background-color: #ffffff;
+    background-color: #FFFFFF;
     border-radius: 5px;
     text-align: center;
     width: 45px;
 }
 
 button, button1, #toggle-cam, #toggle-gen, #go, #stop {
-    display: flex;
+    display: inline-block;
     border: none;
     color: white;
     cursor: pointer;
     padding: 15px 25px;
     border-radius: 5px;
-    justify-content: center;
+    text-align: center;
+    text-decoration: none;
+    box-shadow: 0 9px #0F4F84;
+    margin-bottom: 5px;
+    outline: none;
+    color: #FFFFFF;
     background-color: #187BCD;
     transition: background-color 0.3s;
-    font-family: 'Arial Narrow'; font-weight: bold;
+    font-family: 'Arial Narrow'; 
+    font-weight: bold;
+    font-size: 16px;
 }
-
+button:active {
+    background-color: #1363A5;
+    box-shadow: 0 5px #0F4F84;
+    transform: translateY(4px);
+}
+button1:active {
+    background-color: #3A8F3A;
+    box-shadow: 0 5px #2E722E;
+    transform: translateY(4px);
+}
 #go, #stop{
-    margin-top: 10px;
-    padding: 35px 25px;
+    margin-left: 5px;
+    margin-bottom: 12px;
+    padding: 40px 25px;
 
 }
 #toggle-cam, #toggle-gen {
     padding: 15px 35px;
     background-color: #FF0000;
+    box-shadow: 0 9px #CC0000;
 }
-button1 {background-color: #4CAF50;}
-#go {background-color: #4CAF50;}
-#stop {background-color: #ADAEB3; cursor: default;}
-button:active {background-color: #1363A5;}
-button1:active {background-color: #3A8F3A;}
+
+#toggle-cam:active, #toggle-gen:active {
+    box-shadow: 0 5px #CC0000;
+    transform: translateY(4px);
+}
+button1 {
+    background-color: #4CAF50;
+    box-shadow: 0 9px #2E722E;
+}
+#go {
+    background-color: #4CAF50;
+    box-shadow: 0 9px #2E722E;
+}
+
+#go:active {
+    box-shadow: 0 5px #2E722E;
+    transform: translateY(4px);
+}
+#stop:active{
+    box-shadow: 0 5px #8A8B8F;
+    transform: translateY(4px);
+}
+#stop {
+    background-color: #ADAEB3;
+    box-shadow: 0 9px #8A8B8F;
+    cursor: default;
+}
+
 #toggle-cam.on, #toggle-gen.on {background-color: #4CAF50;}
 #toggle-cam.off, #toggle-gen.off {background-color: #FF0000;}
 

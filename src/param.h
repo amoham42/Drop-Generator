@@ -33,13 +33,15 @@ struct Param {
     int dropNum          = 100;        // Number of droplets
     volatile bool camera = false;      // Camera on/off
     volatile bool drop   = false;      // Droplet generator on/off
-
+    int SHAKE_TIME       = 3000;       // Time length to shake the piezo
+    int SHAKE_SPEED      = 20;         // Piezo vibration delay
+    
     // Motor variables
     bool calibrate       = false;      // Calibrate the motors
     int tiltDeg          = 0;
-    int resMotPos        = 0;          // Reservoir motor position
-    int genMotPos        = 0;          // Generator motor position
-    int travelLength     = 1;          // Motor travel length (mm)
+    double resMotPos     = 0.0;        // Reservoir motor position
+    double genMotPos     = 0.0;        // Generator motor position
+    double travelLength  = 1;          // Motor travel length (mm)
     int SPEED            = 3200;       // Motor speed
     int ACCEL            = 3200;       // Motor acceleration
     int LEAD_SIZE        = 1280;       // Motor round size (steps / mm)

@@ -47,13 +47,13 @@ void webSocketEvent(byte num, WStype_t type, uint8_t* payload, size_t length) {
           token = strtok(NULL, "p");                       // Drop number
           param.dropNum = atoi(token);
           token = strtok(NULL, "p");                       // Motor travel length
-          param.travelLength = atoi(token);
+          param.travelLength = atof(token);
           token = strtok(NULL, "p");                       // Head tilt degree
           param.tiltDeg = atoi(token);
           token = strtok(NULL, "p");                       // Reservoir motor position
-          param.resMotPos = atoi(token);
+          param.resMotPos = atof(token);
           token = strtok(NULL, "p");                       // Generator motor position
-          param.genMotPos = atoi(token);
+          param.genMotPos = atof(token);
         }
         sendData = true;
       }
@@ -62,7 +62,7 @@ void webSocketEvent(byte num, WStype_t type, uint8_t* payload, size_t length) {
 }
 
 // This function sets up the IP, name, and password
-void WifiClass::wfSetup(Motor& motor) {
+void WifiClass::wfSetup(Motor& motor, Generator& generator) {
 
   if(!SPIFFS.begin(true)) return;
   if(param.WIFI_STATION){
@@ -75,11 +75,12 @@ void WifiClass::wfSetup(Motor& motor) {
     WiFi.softAPConfig(local_IP, gateway, subnet);
   }
   while(!MDNS.begin(param.DNS_NAME)) {Serial.println("No MDNS");}
-  setupServer(motor);
+  setupServer(motor,generator);
   server.begin();
   webSocket.begin();
   webSocket.onEvent(webSocketEvent);
   MDNS.addService("http", "tcp", 80);
+  MDNS.addService("http", "udp", 80);
 }
 
 void WifiClass::update(bool textUpdate){
@@ -103,7 +104,7 @@ void WifiClass::update(bool textUpdate){
 }
 
 // Sets up the links for requested functions and files 
-void WifiClass::setupServer(Motor& motor){
+void WifiClass::setupServer(Motor& motor, Generator& generator){
 
   // Files
   server.onNotFound([this]() {handleFile((char*)"/index.html", (char*)"text/html");});
@@ -121,6 +122,7 @@ void WifiClass::setupServer(Motor& motor){
   server.on("/resDOWN",  [&motor, this]() {motor.move(-1, 1); update(true);});
   server.on("/mainDOWN", [&motor, this]() {motor.move(-1, 2); update(true);});
   server.on("/stop",     [&motor, this]() {motor.stop(); update(true);});
+  server.on("/shake",    [&generator]() {generator.shake();});
   server.on("/go",       [&motor, this]() {motor.moveToAbsolute(); update(true);});
   server.on("/calib",    [&motor, this]() {param.calibrate = true; update(false);});
   server.on("/dropgen",  [&motor, this]() {param.drop = !param.drop; update(true);});
