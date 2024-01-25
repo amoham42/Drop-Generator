@@ -18,11 +18,27 @@ function updateDrops(){
   dropsLeft--;
 }
 
-function onMove(isGo){
+function calculateTime(isGo){
   if(isGo){
-    send_data();
+    let resMotPos = parseFloat(document.getElementById('resPos').innerHTML);
+    let genMotPos = parseFloat(document.getElementById('genPos').innerHTML);
+    let resMotInp = parseFloat(document.getElementById('textbox7').value);
+    let genMotInp = parseFloat(document.getElementById('textbox8').value);
+    let resDif = Math.abs(resMotPos - resMotInp);
+    let genDif = Math.abs(genMotPos - genMotInp);
+    resDif = !isNaN(resDif) ? resDif * 100 : 0.0;
+    genDif = !isNaN(genDif) ? genDif * 100 : 0.0;
+
+    return Math.max(resDif, genDif);
+  }
+}
+
+function onMove(isGo){
+  let timeout = calculateTime(true);
+  if(isGo && timeout > 0.0){
+    send_data(true);
     changeBtnState('stop', 'go', '#FF0000', ' 0 9px #CC0000');
-    setTimeout(function() {changeBtnState('go', 'stop', '#4CAF50', ' 0 9px #2E722E');}, 3000);
+    setTimeout(function() {changeBtnState('go', 'stop', '#4CAF50', ' 0 9px #2E722E');}, timeout);
     sendBtnData("/go");
   } else {
     sendBtnData("/stop");
@@ -50,16 +66,24 @@ function sendBtnData(btn){
   xhttp.send();
 }
 
-function send_data() {
+function send_data(isGo = false) {
   let result = '';
   for (let i = 1 ; i <= defaultValues.length ; i++) {
     let value = document.getElementById(`textbox${i}`).value;
     result += 'p' + (/\d/.test(value) ? value : defaultValues[i - 1]);
   }
-  let resMotPos = document.getElementById('resPos').innerHTML;
-  let genMotPos = document.getElementById('genPos').innerHTML;
-  result += 'p' + (/\d/.test(value) ? resMotPos : '0.0');
-  result += 'p' + (/\d/.test(value) ? genMotPos : '0.0');
+  if(isGo){
+    let resMotPos = document.getElementById('resPos').innerHTML;
+    let genMotPos = document.getElementById('genPos').innerHTML;
+    result += 'p' + (/\d/.test(resMotPos) ? resMotPos : '0.0');
+    result += 'p' + (/\d/.test(genMotPos) ? genMotPos : '0.0');
+  } else {
+    let resMotPos = document.getElementById('textbox7').value;
+    let genMotPos = document.getElementById('textbox8').value;
+    result += 'p' + (/\d/.test(resMotPos) ? resMotPos : '0.0');
+    result += 'p' + (/\d/.test(genMotPos) ? genMotPos : '0.0');
+  }
+  
   Socket.send(result);
 }
 

@@ -122,11 +122,12 @@ void WifiClass::setupServer(Motor& motor, Generator& generator){
   server.on("/resDOWN",  [&motor, this]() {motor.move(-1, 1); update(true);});
   server.on("/mainDOWN", [&motor, this]() {motor.move(-1, 2); update(true);});
   server.on("/stop",     [&motor, this]() {motor.stop(); update(true);});
-  server.on("/shake",    [&generator]() {generator.shake();});
+  server.on("/reset",    [&motor, this]() {motor.reset(); update(true);});
   server.on("/go",       [&motor, this]() {motor.moveToAbsolute(); update(true);});
   server.on("/calib",    [&motor, this]() {param.calibrate = true; update(false);});
   server.on("/dropgen",  [&motor, this]() {param.drop = !param.drop; update(true);});
   server.on("/camera",   [&motor, this]() {param.camera = !param.camera; update(true);});
+  server.on("/shake",    [&generator, this]() {generator.shake(); update(true);});
 }
 
 

@@ -37,6 +37,17 @@ void Motor::stop(){
   }
 }
 
+void Motor::reset(){
+  if(resStep.isRunning() || genStep.isRunning()){
+    resStep.stop();
+    genStep.stop();
+  } 
+  param.genMotPos = 0;
+  param.resMotPos = 0;
+  genStep.setCurrentPosition(param.genMotPos);
+  resStep.setCurrentPosition(param.resMotPos);
+}
+
 // This function sets up the motor acceleration, position, and speed
 void Motor::motorSetup(){
 

@@ -48,13 +48,13 @@ struct Param {
     int DIAG_THRESHOLD   = 50;         // Auto home over-current threshold
 
     void loadParameters(Preferences &pref){
-        delayTime        = pref.getInt("DT", delayTime);
-        pulseWidth       = pref.getInt("PW", pulseWidth);
-        dropDelay        = pref.getInt("DD", dropDelay);
-        dropNum          = pref.getInt("DN", dropNum);
-        resMotPos        = pref.getInt("RMP", resMotPos);
-        genMotPos        = pref.getInt("GMP", genMotPos);
-        travelLength     = pref.getInt("TL", travelLength);
+      delayTime        = pref.getInt("DT", delayTime);
+      pulseWidth       = pref.getInt("PW", pulseWidth);
+      dropDelay        = pref.getInt("DD", dropDelay);
+      dropNum          = pref.getInt("DN", dropNum);
+      resMotPos        = pref.getInt("RMP", resMotPos);
+      genMotPos        = pref.getInt("GMP", genMotPos);
+      travelLength     = pref.getInt("TL", travelLength);
     }
 };
 extern Param param;

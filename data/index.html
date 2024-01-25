@@ -45,7 +45,10 @@
           </span>
         </div>
         <button1 onclick='sendBtnData("/calib")' style="margin-bottom: 12px;">Calibrate</button1>
-        <button1 onclick='sendBtnData("/shake")' style="margin-bottom: 7px;">Shake</button1>
+        <div class="dr-container">
+          <button1 onclick='sendBtnData("/shake")' style="margin-bottom: 2px; padding: 15px 84px;">Shake</button1>
+          <button1 onclick='sendBtnData("/reset")' style="margin-bottom: 2px; padding: 15px 27px;">Reset</button1>
+        </div>
         <div style='margin-top: 5px' class="dr-container">
           <label>Drop Gen:</label>
           <div class="wrapper"><div class="water"><div class="drop"></div></div></div>
