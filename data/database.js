@@ -60,23 +60,17 @@ function send_data(isGo = false) {
 
     let prevResMotPos = parseFloat(document.getElementById("resPos").innerHTML).toFixed(1);
     let prevGenMotPos = parseFloat(document.getElementById("genPos").innerHTML).toFixed(1);
-    prevResMotPos =(/\d/.test(prevResMotPos) ? prevResMotPos : "0.00");
-    prevGenMotPos =(/\d/.test(prevGenMotPos) ? prevGenMotPos : "0.00");
+    prevResMotPos = (/\d/.test(prevResMotPos) ? prevResMotPos : "0.00");
+    prevGenMotPos = (/\d/.test(prevGenMotPos) ? prevGenMotPos : "0.00");
 
     if(isGo){
       let resMotPos = parseFloat(document.getElementById("textbox7").value).toFixed(1);
       let genMotPos = parseFloat(document.getElementById("textbox8").value).toFixed(1);
       result += "p" + (/\d/.test(resMotPos) ? resMotPos : prevResMotPos);
-      console.log("reservoir pos: " + resMotPos);
       result += "p" + (/\d/.test(genMotPos) ? genMotPos : prevGenMotPos);
-      console.log("generator pos: " + genMotPos);
-     
     } else {
       result += "p" + prevResMotPos;
-      console.log("reservoir pos: " + prevResMotPos);
       result += "p" + prevGenMotPos;
-      console.log("generator pos: " + prevGenMotPos);
-
     }
     Socket.send(result);
   }
