@@ -68,7 +68,9 @@ void WifiClass::wfSetup(Motor& motor, Generator& generator) {
   if(param.WIFI_STATION){
     WiFi.mode(WIFI_STA);
     WiFi.begin(param.SSID, param.PASSWORD);
-    while(WiFi.status() != WL_CONNECTED){delay(100);}
+    while(WiFi.status() != WL_CONNECTED){delay(1000); Serial.println("Connecting...");}
+    Serial.print("Ip Address: ");
+    Serial.println(WiFi.localIP());
   } else {
     WiFi.softAP(param.SSID, param.PASSWORD);
     delay(100);           // WiFi Setup Delay

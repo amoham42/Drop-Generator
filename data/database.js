@@ -20,7 +20,7 @@ function updateDrops(){
 
 function onMove(isGo){
   if(isGo){
-    send_data();
+    send_data(true);
     changeBtnState('stop', 'go', '#FF0000', ' 0 9px #CC0000');
     setTimeout(function() {changeBtnState('go', 'stop', '#4CAF50', ' 0 9px #2E722E');}, 3000);
     sendBtnData("/go");
@@ -50,19 +50,36 @@ function sendBtnData(btn){
   xhttp.send();
 }
 
-function send_data() {
-  let result = '';
-  for (let i = 1 ; i <= defaultValues.length ; i++) {
-    let value = document.getElementById(`textbox${i}`).value;
-    result += 'p' + (/\d/.test(value) ? value : defaultValues[i - 1]);
-  }
-  let resMotPos = document.getElementById('resPos').innerHTML;
-  let genMotPos = document.getElementById('genPos').innerHTML;
-  result += 'p' + (/\d/.test(value) ? resMotPos : '0.0');
-  result += 'p' + (/\d/.test(value) ? genMotPos : '0.0');
-  Socket.send(result);
-}
 
+function send_data(isGo = false) {
+  let result = "";
+    for (let i = 1 ; i <= defaultValues.length ; i++) {
+      let value = document.getElementById(`textbox${i}`).value;
+      result += "p" + (/\d/.test(value) ? value : defaultValues[i - 1]);
+    }
+
+    let prevResMotPos = parseFloat(document.getElementById("resPos").innerHTML).toFixed(1);
+    let prevGenMotPos = parseFloat(document.getElementById("genPos").innerHTML).toFixed(1);
+    prevResMotPos =(/\d/.test(prevResMotPos) ? prevResMotPos : "0.00");
+    prevGenMotPos =(/\d/.test(prevGenMotPos) ? prevGenMotPos : "0.00");
+
+    if(isGo){
+      let resMotPos = parseFloat(document.getElementById("textbox7").value).toFixed(1);
+      let genMotPos = parseFloat(document.getElementById("textbox8").value).toFixed(1);
+      result += "p" + (/\d/.test(resMotPos) ? resMotPos : prevResMotPos);
+      console.log("reservoir pos: " + resMotPos);
+      result += "p" + (/\d/.test(genMotPos) ? genMotPos : prevGenMotPos);
+      console.log("generator pos: " + genMotPos);
+     
+    } else {
+      result += "p" + prevResMotPos;
+      console.log("reservoir pos: " + prevResMotPos);
+      result += "p" + prevGenMotPos;
+      console.log("generator pos: " + prevGenMotPos);
+
+    }
+    Socket.send(result);
+  }
 function receive_data(event) {
   
   const myArray = event.data.split(' ');
@@ -92,7 +109,7 @@ function receive_data(event) {
     });
     let difference = document.getElementById('genPos').innerHTML - 
                       document.getElementById('resPos').innerHTML;
-    document.getElementById('mainPos').innerHTML = Math.abs(difference);
+    document.getElementById('mainPos').innerHTML = Math.abs(difference).toFixed(1);
   }
   const dropDelay = document.getElementById('dpdel').innerHTML;
   if(toggleGen.innerHTML === 'On') {
