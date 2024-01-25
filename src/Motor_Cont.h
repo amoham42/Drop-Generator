@@ -10,6 +10,7 @@ class Motor{
     void calibrate();
     void runMotor();
     void stop();
+    void reset();
     void move(int, int);
     void moveToAbsolute();
 

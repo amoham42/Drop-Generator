@@ -18,11 +18,11 @@ function updateDrops(){
   dropsLeft--;
 }
 
-function onMove(isGo){
+function calculateTime(isGo){
   if(isGo){
     send_data(true);
     changeBtnState('stop', 'go', '#FF0000', ' 0 9px #CC0000');
-    setTimeout(function() {changeBtnState('go', 'stop', '#4CAF50', ' 0 9px #2E722E');}, 3000);
+    setTimeout(function() {changeBtnState('go', 'stop', '#4CAF50', ' 0 9px #2E722E');}, timeout);
     sendBtnData("/go");
   } else {
     sendBtnData("/stop");
