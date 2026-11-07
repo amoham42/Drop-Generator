@@ -1,5 +1,9 @@
 # DropGen: droplet-on-demand generator
 
+[![License: CC BY-SA 4.0](https://img.shields.io/badge/license-CC%20BY--SA%204.0-lightgrey.svg)](LICENSE)
+[![OSHWA certified: US002701](https://img.shields.io/badge/OSHWA-US002701-0b7a75.svg)](https://certification.oshwa.org/us002701.html)
+[![PlatformIO](https://img.shields.io/badge/built%20with-PlatformIO-f5822a.svg)](https://platformio.org/)
+
 Firmware and web interface for **DropGen**, a low-cost droplet generator for fluid-mechanics experiments. It was built in the Harris Lab at Brown University. DropGen dispenses single droplets from more than 1 mm down to under 0.2 mm in diameter. The droplets are precise and repeatable, and a camera can be triggered at the same moment of every drop.
 
 The hardware is certified open source by the Open Source Hardware Association: **[OSHWA UID US002701](https://certification.oshwa.org/us002701.html)** (DropGen V3, certified November 2024). The body is 3D printed on an FDM printer around an off-the-shelf brass nozzle, and runs on a custom PCB.
@@ -64,7 +68,7 @@ pio run -t uploadfs    # the web UI in data/ -> SPIFFS
 pio device monitor     # prints the address to open
 ```
 
-Wi-Fi credentials, pin assignments and limits are all in [`src/param.h`](src/param.h).
+Wi-Fi credentials, pin assignments and limits are all in [`src/param.h`](src/param.h). The platform and library versions are pinned in [`platformio.ini`](platformio.ini).
 
 | Pin | Use |
 |---|---|
@@ -74,9 +78,9 @@ Wi-Fi credentials, pin assignments and limits are all in [`src/param.h`](src/par
 | 9 / 44 | reservoir / generator driver stall output |
 | 21 | on-board LED |
 
-## Source
+## Repository layout
 
-| File | Purpose |
+| Path | Purpose |
 |---|---|
 | `src/Main.ino` | creates the two tasks and pins them to their cores |
 | `src/Drop_Gen.*` | piezo pulses, droplet runs, camera trigger, shaking |
@@ -84,3 +88,9 @@ Wi-Fi credentials, pin assignments and limits are all in [`src/param.h`](src/par
 | `src/Wifi_Cont.*` | Wi-Fi with access-point fallback, HTTP routes, WebSocket protocol |
 | `src/param.h` | shared settings, limits, flash persistence |
 | `data/` | the web UI (HTML, CSS, JS) served from SPIFFS |
+| `docs/` | screenshots for this README |
+
+## License
+
+DropGen is certified open source hardware, [OSHWA UID US002701](https://certification.oshwa.org/us002701.html). The certification lists the hardware, software and documentation under the [Creative Commons Attribution-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-sa/4.0/) license (CC BY-SA 4.0); the full text is in [`LICENSE`](LICENSE).
+
