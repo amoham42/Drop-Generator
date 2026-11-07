@@ -1,35 +1,36 @@
+// DropGen: droplet-on-demand generator for fluid-mechanics experiments (Harris Lab, Brown University).
+//
+// Core 1 runs the drop generator alone, so droplet timing never waits on Wi-Fi. Core 0 runs the
+// web server, the WebSocket and the stepper motors.
+
 #include "Drop_Gen.h"
+#include "Motor_Cont.h"
 #include "Wifi_Cont.h"
 #include "param.h"
 #include <Preferences.h>
 
-// Initializing two cores on ESP32
-static const BaseType_t app_cpu = 0;
-static const BaseType_t pro_cpu = 1;
+Param param;
+Preferences pref;
+Generator DropGen;
+Motor MotorCont;
+WifiClass WiFiCont;
 
-// Initializing each controller
-Param param;               // Parameters
-Preferences pref;          // To load previous parameters
-Generator DropGen;         // Drop generator Controller
-Motor MotorCont = Motor(); // Motor Controller
-WifiClass  WiFiCont;       // Wifi & server Controller 
+static const BaseType_t WEB_CORE = 0;
+static const BaseType_t DROP_CORE = 1;
 
-// Functions run by each core
-void codeTask1(void* parameter){while(1){DropGen.dgStart();}}
-void codeTask2(void* parameter){while(1){WiFiCont.wfRun(MotorCont);}}
+void dropTask(void*) { for (;;) DropGen.dgStart(); }
+void controlTask(void*) { for (;;) WiFiCont.wfRun(MotorCont); }
 
-// set up all the controllers initial values and making each core function
-void setup(){
+void setup() {
   Serial.begin(115200);
-  disableCore0WDT();
+  disableCore0WDT();  // the control task never blocks long enough to feed the idle task
   pref.begin("param", false);
-  param.loadParameters(pref);
+  param.load(pref);
   DropGen.dgSetup();
   MotorCont.motorSetup();
   WiFiCont.wfSetup(MotorCont, DropGen);
-  xTaskCreatePinnedToCore(codeTask1, "DropGen", 2048, NULL, 1, NULL, pro_cpu);
-  xTaskCreatePinnedToCore(codeTask2, "Controls", 10240, NULL, 1, NULL, app_cpu);
+  xTaskCreatePinnedToCore(dropTask, "DropGen", 4096, nullptr, 2, nullptr, DROP_CORE);
+  xTaskCreatePinnedToCore(controlTask, "Controls", 10240, nullptr, 1, nullptr, WEB_CORE);
 }
 
-
-void loop(){vTaskDelay(portMAX_DELAY);}
+void loop() { vTaskDelay(portMAX_DELAY); }

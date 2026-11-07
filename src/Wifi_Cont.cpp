@@ -1,146 +1,150 @@
 #include <WiFi.h>
-#include <sstream>
 #include <ESPmDNS.h>
 #include <WebServer.h>
 #include <WebSocketsServer.h>
 #include "SPIFFS.h"
 #include "Wifi_Cont.h"
-#include "Motor_Cont.h"
 #include "param.h"
 
-WebServer server(80);                                 
-WebSocketsServer webSocket = WebSocketsServer(81);  
-IPAddress local_IP(192, 168, 1, 1);
-IPAddress gateway(192, 168, 1, 1);   // Access point IP
-IPAddress subnet(255, 255, 255, 0);
-bool sendData = false;
+static WebServer server(80);
+static WebSocketsServer webSocket(81);
+static const IPAddress apIP(192, 168, 4, 1), apMask(255, 255, 255, 0);
+static uint32_t lastBroadcast = 0;
 
-// Main page for server and captures values sent by server
-void WifiClass::wfRun(Motor& motor) {
-  motor.runMotor();
-  server.handleClient();                         
-  webSocket.loop();
-  if(sendData) update(true);
+// "p<pulse>p<camDelay>p<dropDelay>p<dropNum>p<travel>p<tilt>p<resPos>p<genPos>" from the Submit
+// and GO buttons. Every field must parse; anything missing or malformed rejects the whole message.
+static bool parseSettings(char* msg) {
+  float v[8];
+  char* save = nullptr;
+  char* token = strtok_r(msg, "p", &save);
+  for (int i = 0; i < 8; i++) {
+    if (!token) return false;
+    char* end = nullptr;
+    v[i] = strtof(token, &end);
+    if (end == token) return false;
+    token = strtok_r(nullptr, "p", &save);
+  }
+  param.pulseWidth   = (int)v[0];
+  param.delayTime    = (int)v[1];
+  param.dropDelay    = (int)v[2];
+  param.dropNum      = (int)v[3];
+  param.travelLength = v[4];
+  param.tiltDeg      = (int)v[5];
+  param.resMotPos    = v[6];
+  param.genMotPos    = v[7];
+  param.clampSettings();
+  param.save(pref);
+  return true;
 }
 
-void webSocketEvent(byte num, WStype_t type, uint8_t* payload, size_t length) {    
-
+static void onSocketEvent(uint8_t num, WStype_t type, uint8_t* payload, size_t length) {
   switch (type) {
-    case WStype_DISCONNECTED:
-      Serial.println("Client " + String(num) + " disconnected");
-      break;
     case WStype_CONNECTED:
-      Serial.println("Client " + String(num) + " connected");
-      sendData = true;
+      Serial.printf("client %u connected\n", num);
+      param.stateChanged = true;
+      break;
+    case WStype_DISCONNECTED:
+      Serial.printf("client %u disconnected\n", num);
       break;
     case WStype_TEXT:
-      if (length > 0) {
-        if(payload[0] == 'p'){
-          char* token = nullptr;
-
-          token = strtok((char*)payload, "p");             // Pulse width 
-          param.pulseWidth = atoi(token);
-          token = strtok(NULL, "p");                       // Camera delay
-          param.delayTime = atoi(token);
-          token = strtok(NULL, "p");                       // Drop delay
-          param.dropDelay = atoi(token);
-          token = strtok(NULL, "p");                       // Drop number
-          param.dropNum = atoi(token);
-          token = strtok(NULL, "p");                       // Motor travel length
-          param.travelLength = atof(token);
-          token = strtok(NULL, "p");                       // Head tilt degree
-          param.tiltDeg = atoi(token);
-          token = strtok(NULL, "p");                       // Reservoir motor position
-          param.resMotPos = atof(token);
-          token = strtok(NULL, "p");                       // Generator motor position
-          param.genMotPos = atof(token);
-        }
-        sendData = true;
-      }
+      if (length > 0 && payload[0] == 'p' && !parseSettings(reinterpret_cast<char*>(payload)))
+        Serial.println("rejected malformed settings message");
+      param.stateChanged = true;
+      break;
+    default:
       break;
   }
 }
 
-// This function sets up the IP, name, and password
-void WifiClass::wfSetup(Motor& motor, Generator& generator) {
-
-  if(!SPIFFS.begin(true)) return;
-  if(param.WIFI_STATION){
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(param.SSID, param.PASSWORD);
-    while(WiFi.status() != WL_CONNECTED){delay(1000); Serial.println("Connecting...");}
-    Serial.print("Ip Address: ");
-    Serial.println(WiFi.localIP());
-  } else {
-    WiFi.softAP(param.SSID, param.PASSWORD);
-    delay(100);           // WiFi Setup Delay
-    WiFi.softAPConfig(local_IP, gateway, subnet);
+// Joins the lab network, or falls back to an access point of its own.
+void WifiClass::connect() {
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(param.SSID, param.PASSWORD);
+  Serial.printf("joining %s", param.SSID);
+  const uint32_t start = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - start < param.WIFI_TIMEOUT_MS) {
+    delay(500);
+    Serial.print('.');
   }
-  while(!MDNS.begin(param.DNS_NAME)) {Serial.println("No MDNS");}
-  setupServer(motor,generator);
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.printf("\nconnected, open http://%s.local or http://%s\n", param.DNS_NAME, WiFi.localIP().toString().c_str());
+    return;
+  }
+  WiFi.disconnect(true);
+  WiFi.mode(WIFI_AP);
+  WiFi.softAPConfig(apIP, apIP, apMask);
+  WiFi.softAP(param.AP_SSID, strlen(param.AP_PASSWORD) >= 8 ? param.AP_PASSWORD : nullptr);
+  Serial.printf("\nno network; join Wi-Fi \"%s\" and open http://%s\n", param.AP_SSID, apIP.toString().c_str());
+}
+
+void WifiClass::wfSetup(Motor& motor, Generator& generator) {
+  if (!SPIFFS.begin(true)) Serial.println("SPIFFS mount failed; did you run `pio run -t uploadfs`?");
+  connect();
+  if (MDNS.begin(param.DNS_NAME)) MDNS.addService("http", "tcp", 80);
+  setupServer(motor, generator);
   server.begin();
   webSocket.begin();
-  webSocket.onEvent(webSocketEvent);
-  MDNS.addService("http", "tcp", 80);
-  MDNS.addService("http", "udp", 80);
+  webSocket.onEvent(onSocketEvent);
 }
 
-void WifiClass::update(bool textUpdate){
-
-  if(textUpdate){
-    std::ostringstream oss;
-    oss << (param.drop ? "1" : "0")
-        << (param.camera ? " 1" : " 0")
-        << ' ' << param.pulseWidth
-        << ' ' << param.delayTime
-        << ' ' << param.dropDelay
-        << ' ' << param.dropNum
-        << ' ' << param.travelLength
-        << ' ' << param.tiltDeg
-        << ' ' << param.resMotPos
-        << ' ' << param.genMotPos;
-    webSocket.broadcastTXT(oss.str().c_str());
-    server.send(200, "text/plain", "");
-  } else server.send(200, "text/plain", "");
-  sendData = false;
+void WifiClass::wfRun(Motor& motor) {
+  motor.runMotor();
+  server.handleClient();
+  webSocket.loop();
+  // push state on every change, and ~5x a second while motors move so positions stay live
+  const uint32_t now = millis();
+  if (param.stateChanged || (motor.isMoving() && now - lastBroadcast > 200)) broadcast(motor);
 }
 
-// Sets up the links for requested functions and files 
-void WifiClass::setupServer(Motor& motor, Generator& generator){
-
-  // Files
-  server.onNotFound([this]() {handleFile((char*)"/index.html", (char*)"text/html");});
-  server.on("/",            HTTP_GET, [this]() {handleFile((char*)"/index.html", (char*)"text/html");});
-  server.on("/camera.png",  HTTP_GET, [this]() {handleFile((char*)"/camera.png", (char*)"image/png");});
-  server.on("/hlogo.png",   HTTP_GET, [this]() {handleFile((char*)"/hlogo.png", (char*)"image/png");});
-  server.on("/config.css",  HTTP_GET, [this]() {handleFile((char*)"/config.css", (char*)"text/css");});
-  server.on("/database.js", HTTP_GET, [this]() {handleFile((char*)"/database.js", (char*)"text/javascript");});
-
-  // Functions
-  server.on("/genUP",    [&motor, this]() {motor.move( 1, 0); update(true);});
-  server.on("/resUP",    [&motor, this]() {motor.move( 1, 1); update(true);});
-  server.on("/mainUP",   [&motor, this]() {motor.move( 1, 2); update(true);});
-  server.on("/genDOWN",  [&motor, this]() {motor.move(-1, 0); update(true);});
-  server.on("/resDOWN",  [&motor, this]() {motor.move(-1, 1); update(true);});
-  server.on("/mainDOWN", [&motor, this]() {motor.move(-1, 2); update(true);});
-  server.on("/stop",     [&motor, this]() {motor.stop(); update(true);});
-  server.on("/reset",    [&motor, this]() {motor.reset(); update(true);});
-  server.on("/go",       [&motor, this]() {motor.moveToAbsolute(); update(true);});
-  server.on("/calib",    [&motor, this]() {param.calibrate = true; update(false);});
-  server.on("/dropgen",  [&motor, this]() {param.drop = !param.drop; update(true);});
-  server.on("/camera",   [&motor, this]() {param.camera = !param.camera; update(true);});
-  server.on("/shake",    [&generator, this]() {generator.shake(); update(true);});
+// "drop camera pulse camDelay dropDelay dropNum travel tilt resPos genPos dropsLeft moving"
+void WifiClass::broadcast(Motor& motor) {
+  param.stateChanged = false;
+  lastBroadcast = millis();
+  char msg[160];
+  snprintf(msg, sizeof(msg), "%d %d %d %d %d %d %.2f %d %.2f %.2f %d %d", param.drop ? 1 : 0, param.camera ? 1 : 0,
+           param.pulseWidth, param.delayTime, param.dropDelay, param.dropNum, param.travelLength, param.tiltDeg,
+           motor.resPosition(), motor.genPosition(), (int)param.dropsLeft, motor.isMoving() ? 1 : 0);
+  webSocket.broadcastTXT(msg);
 }
 
-
-// Send necessary extension files saved in SPIFFS memory to server
-void WifiClass::handleFile(char* name, char* type){
-
-  File file = SPIFFS.open(name, "r");
-  if (file) {
-    server.send(200, type, file.readString());
-    file.close();
-  } else {
+static void serveFile(const char* path, const char* type) {
+  File file = SPIFFS.open(path, "r");
+  if (!file) {
     server.send(404, "text/plain", "File not found");
+    return;
   }
+  server.streamFile(file, type);  // binary-safe, unlike reading into a String
+  file.close();
+}
+
+void WifiClass::setupServer(Motor& motor, Generator& generator) {
+  // UI files
+  server.on("/", HTTP_GET, [] { serveFile("/index.html", "text/html"); });
+  server.on("/camera.png", HTTP_GET, [] { serveFile("/camera.png", "image/png"); });
+  server.on("/hlogo.png", HTTP_GET, [] { serveFile("/hlogo.png", "image/png"); });
+  server.on("/config.css", HTTP_GET, [] { serveFile("/config.css", "text/css"); });
+  server.on("/database.js", HTTP_GET, [] { serveFile("/database.js", "text/javascript"); });
+  server.onNotFound([] { serveFile("/index.html", "text/html"); });
+
+  // buttons: act, reply at once, and let the WebSocket carry the new state
+  auto action = [](std::function<void()> fn) {
+    return [fn] {
+      fn();
+      param.stateChanged = true;
+      server.send(204);
+    };
+  };
+  server.on("/genUP", action([&motor] { motor.move(1, 0); }));
+  server.on("/resUP", action([&motor] { motor.move(1, 1); }));
+  server.on("/mainUP", action([&motor] { motor.move(1, 2); }));
+  server.on("/genDOWN", action([&motor] { motor.move(-1, 0); }));
+  server.on("/resDOWN", action([&motor] { motor.move(-1, 1); }));
+  server.on("/mainDOWN", action([&motor] { motor.move(-1, 2); }));
+  server.on("/go", action([&motor] { motor.moveToAbsolute(); }));
+  server.on("/stop", action([&motor] { motor.stop(); }));
+  server.on("/reset", action([&motor] { motor.reset(); }));
+  server.on("/calib", action([&motor] { motor.calibrate(); }));
+  server.on("/dropgen", action([&generator] { param.drop ? generator.stopRun() : generator.startRun(); }));
+  server.on("/camera", action([] { param.camera = !param.camera; }));
+  server.on("/shake", action([] { param.shakeRequested = true; }));  // done by the generator task
 }
