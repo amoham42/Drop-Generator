@@ -2,126 +2,118 @@
 #include "Motor_Cont.h"
 #include "param.h"
 
-// Initializing the motors
-AccelStepper resStep(AccelStepper::DRIVER, param.RES_STEP, param.RES_DIR);
-AccelStepper genStep(AccelStepper::DRIVER, param.GEN_STEP, param.GEN_DIR);
+static AccelStepper resStep(AccelStepper::DRIVER, param.RES_STEP, param.RES_DIR);
+static AccelStepper genStep(AccelStepper::DRIVER, param.GEN_STEP, param.GEN_DIR);
 
-volatile bool stopRes = false;
-volatile bool stopGen = false;
+// Set by the stall interrupts, handled in runMotor(). The ISRs only raise a flag: AccelStepper
+// does floating-point maths, and using the FPU inside an ESP32 interrupt crashes the core.
+static volatile bool resStallFlag = false;
+static volatile bool genStallFlag = false;
+static bool homing = false;
+static bool resHomed = false, genHomed = false;
 
-void IRAM_ATTR resStalled(){
-  if(digitalRead(param.RES_DIAG) == HIGH){
-    resStep.setAcceleration(200000);
-    resStep.moveTo(param.resMotPos);
-    resStep.setAcceleration(param.ACCEL);
-    stopRes = true;
+static void IRAM_ATTR resStalled() { resStallFlag = true; }
+static void IRAM_ATTR genStalled() { genStallFlag = true; }
+
+static long toSteps(float mm) { return lroundf(mm * param.LEAD_SIZE); }
+static float toMm(long steps) { return (float)steps / param.LEAD_SIZE; }
+
+void Motor::motorSetup() {
+  for (AccelStepper* s : {&resStep, &genStep}) {
+    s->setMaxSpeed(param.SPEED);
+    s->setAcceleration(param.ACCEL);
   }
-}
+  resStep.setCurrentPosition(toSteps(param.resMotPos));
+  genStep.setCurrentPosition(toSteps(param.genMotPos));
 
-void IRAM_ATTR genStalled(){
-  if(digitalRead(param.GEN_DIAG) == HIGH){
-    genStep.setAcceleration(200000);
-    genStep.moveTo(param.genMotPos);
-    genStep.setAcceleration(param.ACCEL);
-    stopGen = true;
-  }
-}
-
-void Motor::stop(){
-  if(resStep.isRunning()){
-    param.resMotPos -= resStep.distanceToGo();
-    resStep.stop();
-  } else if (genStep.isRunning()){
-    param.genMotPos -= genStep.distanceToGo();
-    genStep.stop();
-  }
-}
-
-void Motor::reset(){
-  if(resStep.isRunning() || genStep.isRunning()){
-    resStep.stop();
-    genStep.stop();
-  } 
-  param.genMotPos = 0;
-  param.resMotPos = 0;
-  genStep.setCurrentPosition(param.genMotPos);
-  resStep.setCurrentPosition(param.resMotPos);
-}
-
-// This function sets up the motor acceleration, position, and speed
-void Motor::motorSetup(){
-
-  resStep.setMaxSpeed(param.SPEED);
-  resStep.setAcceleration(param.ACCEL);
-  resStep.setCurrentPosition(param.resMotPos);
-  attachInterrupt(digitalPinToInterrupt(param.RES_DIAG),
-                                          resStalled, RISING);
-  
-  genStep.setMaxSpeed(param.SPEED);
-  genStep.setAcceleration(param.ACCEL);
-  genStep.setCurrentPosition(param.genMotPos);
+  pinMode(param.RES_DIAG, INPUT_PULLUP);
   pinMode(param.GEN_DIAG, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(param.GEN_DIAG),
-                                          genStalled, RISING);
+  attachInterrupt(digitalPinToInterrupt(param.RES_DIAG), resStalled, RISING);
+  attachInterrupt(digitalPinToInterrupt(param.GEN_DIAG), genStalled, RISING);
 }
 
-// This function runs the motors
-void Motor::runMotor(){
-  if(param.calibrate) calibrate();
+// A stall halts the motor where it is: during homing that's the end stop, otherwise something
+// is in the way.
+static void handleStall(AccelStepper& stepper, volatile bool& flag, float& target, bool& homed) {
+  if (!flag) return;
+  flag = false;
+  if (!stepper.isRunning()) return;  // noise on the line while idle
+  if (homing) {
+    stepper.setCurrentPosition(0);
+    target = 0.0f;
+    homed = true;
+  } else {
+    stepper.setCurrentPosition(stepper.currentPosition());  // stops immediately
+    target = toMm(stepper.currentPosition());
+  }
+  param.stateChanged = true;
+}
+
+void Motor::runMotor() {
+  handleStall(resStep, resStallFlag, param.resMotPos, resHomed);
+  handleStall(genStep, genStallFlag, param.genMotPos, genHomed);
+
+  if (homing) {
+    // a motor that ran its full homing travel without stalling is treated as home too
+    if (!resHomed && !resStep.isRunning()) { resStep.setCurrentPosition(0); param.resMotPos = 0; resHomed = true; }
+    if (!genHomed && !genStep.isRunning()) { genStep.setCurrentPosition(0); param.genMotPos = 0; genHomed = true; }
+    if (resHomed && genHomed) {
+      homing = false;
+      param.save(pref);
+      param.stateChanged = true;
+    }
+  }
+
   resStep.run();
   genStep.run();
 }
 
-void Motor::move(int dir, int motor){
-  switch(motor) {
-    case 0: // Generator Motor
-      calculateDist(param.genMotPos, genStep, dir);
-      break;
-    
-    case 1: // Reservoir Motor
-      calculateDist(param.resMotPos, resStep, dir);
-      break;
-    
-    case 2: // Both Motors
-      calculateDist(param.genMotPos, genStep, dir);
-      calculateDist(param.resMotPos, resStep, dir);
-      break;
-
-    default:
-      Serial.println("Invalid motor identifier");
-      break;
-    }
+void Motor::calibrate() {
+  homing = true;
+  resHomed = genHomed = false;
+  resStallFlag = genStallFlag = false;
+  resStep.setCurrentPosition(0);
+  genStep.setCurrentPosition(0);
+  resStep.moveTo(-toSteps(param.HOMING_TRAVEL_MM));
+  genStep.moveTo(-toSteps(param.HOMING_TRAVEL_MM));
 }
 
-void Motor::calculateDist(double& motorPos, AccelStepper& stepper, int dir) {
-  if(!stepper.isRunning()){
-    motorPos += param.travelLength * dir;
-    stepper.moveTo(motorPos * param.LEAD_SIZE);
-  }
+static void jog(AccelStepper& stepper, float& target, int dir) {
+  if (stepper.isRunning()) return;
+  target += param.travelLength * dir;
+  stepper.moveTo(toSteps(target));
 }
 
-void Motor::moveToAbsolute(){
-  if(!resStep.isRunning()) resStep.moveTo(param.resMotPos * param.LEAD_SIZE);
-  if(!genStep.isRunning()) genStep.moveTo(param.genMotPos * param.LEAD_SIZE);
+void Motor::move(int dir, int motor) {
+  if (homing) return;
+  if (motor == 0 || motor == 2) jog(genStep, param.genMotPos, dir);
+  if (motor == 1 || motor == 2) jog(resStep, param.resMotPos, dir);
 }
 
-// Calibration function for the motors
-void Motor::calibrate(){
-
-  if(!stopRes){
-    param.resMotPos -= param.LEAD_SIZE / 8;
-    resStep.moveTo(param.resMotPos);
-  }
-  if(!stopGen){
-    param.genMotPos -= param.LEAD_SIZE / 8;
-    genStep.moveTo(param.genMotPos);
-  }
-  
-  if(stopRes && stopGen){
-    param.genMotPos = 0;
-    param.resMotPos = 0;
-    param.calibrate = false;
-    stopRes = false;
-    stopGen = false;
-  }
+void Motor::moveToAbsolute() {
+  if (homing) return;
+  resStep.moveTo(toSteps(param.resMotPos));
+  genStep.moveTo(toSteps(param.genMotPos));
 }
+
+// Decelerate both motors; the targets become wherever they come to rest.
+void Motor::stop() {
+  homing = false;
+  resStep.stop();
+  genStep.stop();
+  param.resMotPos = toMm(resStep.targetPosition());
+  param.genMotPos = toMm(genStep.targetPosition());
+}
+
+void Motor::reset() {
+  homing = false;
+  resStep.setCurrentPosition(0);  // also cancels any move
+  genStep.setCurrentPosition(0);
+  param.resMotPos = 0.0f;
+  param.genMotPos = 0.0f;
+  param.save(pref);
+}
+
+bool Motor::isMoving() { return resStep.isRunning() || genStep.isRunning(); }
+float Motor::resPosition() { return toMm(resStep.currentPosition()); }
+float Motor::genPosition() { return toMm(genStep.currentPosition()); }
