@@ -1,0 +1,34 @@
+name: build
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  firmware:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - uses: actions/cache@v6
+        with:
+          path: ~/.platformio
+          key: platformio-${{ hashFiles('platformio.ini') }}
+      - run: pip install platformio
+      - name: Build firmware
+        run: pio run
+      - name: Build SPIFFS image (web UI)
+        run: pio run -t buildfs
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dropgen-seeed_xiao_esp32s3
+          path: |
+            .pio/build/seeed_xiao_esp32s3/firmware.bin
+            .pio/build/seeed_xiao_esp32s3/spiffs.bin
+          if-no-files-found: error
